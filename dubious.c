@@ -276,17 +276,100 @@ void decompressString(char str[520], unsigned int ind) {
           str[i]=(unsigned char)c;
           i++;
      }
-     while (R[0]!=0 && i<519 && ((c!=1 && c!=3) || (l>=17 && l<=20) || l==26 || l==29));
+     while (R[0]!=0 && i<519 && ((c!=1/* && c!=3*/) || (l>=17 && l<=20) || l==26 || l==29));
      str[i]=0;
 }
 
+int exportFont(char* outfile)
+{
+     if (fstream==NULL)
+     {
+          return -1;
+     }
+     unsigned char buffer[8192];
+     buffer[0]=66; buffer[1]=77;
+     buffer[2]=204; buffer[3]=31; buffer[4]=0; buffer[5]=0;
+     buffer[6]=0; buffer[7]=0;
+     buffer[8]=0; buffer[9]=0;
+     buffer[10]=74; buffer[11]=0; buffer[12]=0; buffer[13]=0;
+     
+     buffer[14]=12; buffer[15]=0; buffer[16]=0; buffer[17]=0;
+     buffer[18]=0; buffer[19]=7;
+     buffer[20]=9; buffer[21]=0;
+     buffer[22]=1; buffer[23]=0;
+     buffer[24]=4; buffer[25]=0;
+     
+     buffer[26]=0; buffer[27]=128; buffer[28]=0;
+     buffer[29]=240; buffer[30]=240; buffer[31]=240;
+     buffer[32]=0; buffer[33]=0; buffer[34]=0;
+     
+     
+     unsigned char dx, dy, byte, byte2;
+     unsigned int i;
+     
+     for (i=35; i<74; i++)
+     { buffer[i]=0; }
+     if (fileversion==0)
+     { fseek(fstream,(LOAD_INT(filetable+0x4C)+0x420)&0x1FFFFFF,SEEK_SET); }
+     else if (fileversion==1)
+     { fseek(fstream,(LOAD_INT(0x0868004C)+0x420)&0x1FFFFFF,SEEK_SET); }
+     else if (fileversion==10)
+     { fseek(fstream,(LOAD_INT(0x08800048)+0x420)&0x1FFFFFF,SEEK_SET); }
+     else if (fileversion==11)
+     { fseek(fstream,(LOAD_INT(0x08C28078)+0x420)&0x1FFFFFF,SEEK_SET); }
+     for (i=0; i<224; i++)
+     {
+          for (dy=0; dy<8; dy++)
+          {
+               for(dx=0; dx<4; dx++)
+               {
+                    byte=0;
+                    fread(&byte2,1,1,fstream);
+                    byte=byte2&3;
+                    if (byte==2)
+                    { byte=0; }
+                    else if (byte==3)
+                    { byte=2; }
+                    byte2=(byte2>>4)&3;
+                    if (byte2==2)
+                    { byte2=0; }
+                    else if (byte2==3)
+                    { byte2=2; }
+                    byte=byte2|(byte<<4);
+                    buffer[74+896*(8-dy)+dx+(i<<2)]=byte;
+               }
+          }
+     }
+     
+     for (i=74; i<970; i++)
+     { buffer[i]=0; }
+     
+     FILE *fstream_o;
+     fstream_o=fopen(outfile, "wb");
+     if (fstream_o==NULL)
+      return -2;
+     else
+     {
+          i=fwrite(buffer,1,8140,fstream_o);
+     }
+     fclose(fstream_o);
+     if (i!=0)
+     { return 1; }
+     else
+     { return -3; }
+}
+
 int main(int argc, char **argv) {
-	if (argc != 2) {
+	if (argc != 2 && argc != 3) {
 		printf("Usage: dubious <filename>");
 		return 0;
 	}
 
 	loadFile(argv[1]);
+	if (argc == 3) {
+		exportFont(argv[2]);
+		return 0;
+	}
 	unsigned int num_strings;
 	switch (fileversion) {
 		case 0:
