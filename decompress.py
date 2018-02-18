@@ -31,7 +31,7 @@ def decompress_one(src, i, info):
     init_char = 0
 
     done = False
-    out = bytearray()
+    out = []
 
     while not done:
         char_tree = (char_data + read_int16(src, char_ptrs + (init_char << 1))) << 3
@@ -60,6 +60,7 @@ def decompress_one(src, i, info):
                     char_slot -= 12
                     depth -= 1
         init_char = (read_int16(src, char_slot >> 3) >> (char_slot & 7)) & 0xfff
+        init_char &= 0xff
         out.append(init_char)
         done = (init_char == 0)
     return out
@@ -77,17 +78,17 @@ def decompress(src):
 
         strings = []
 
-        for i in range(12461):
+        for i in [4555-4, 4556-4]:
             strings.append(decompress_one(src, i, info))
         return strings
     except:
         import pdb; pdb.post_mortem()
-
-with open('english.gba', 'rb') as f:
-    from datetime import datetime
-    s = datetime.now()
+import sys
+with open(sys.argv[1], 'rb') as f:
     b = f.read()
-    e = datetime.now() - s
-    print(e)
     strings = decompress(b)
-    print(strings[:20])
+    for s in strings:
+        out = ['[%2x]' % c for c in s]
+        tr = ''.join(chr(c) for c in s)
+        print(''.join(out))
+        print(tr)
